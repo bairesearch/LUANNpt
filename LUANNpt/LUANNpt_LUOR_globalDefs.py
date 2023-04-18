@@ -18,7 +18,7 @@ LUANNpt LUOR globalDefs
 """
 
 LUANNvectorised = False	#execute column operations in parallel	#optional
-useCNNlayers = True	#optional	#else Linear layers
+useCNNlayers = False	#optional	#else Linear layers
 
 trainLastLayerOnly = True	#True: default LUANN, False: standard backprop comparison for debug
 
@@ -44,6 +44,34 @@ else:
 	hiddenLayerSize = 256
 	inputLayerSize = numberOfFeatures
 
+SMANNuseSoftmax = False	#experimental (select activation function that will gradually reduce probability of activation of higher level columns in each permutation)
+usePositiveWeights = True	#required
+if(usePositiveWeights):
+	usePositiveWeightsClampModel = False	#mandatory False as hidden layer weights untrained but all initialised as positive
+
+if(usePositiveWeights):
+	thresholdActivations = True	#make activations go to zero at later layers in columns
+	if(thresholdActivations):
+		import math
+		def calculateDefaultLinearWeightsStdv(in_features):
+			if(SMANNuseSoftmax):
+				stdv = 0.003
+			else:
+				stdv = 10.0	#0.2
+			return stdv
+		def calculateDefaultConv2DweightsStdv(in_features):
+			if(SMANNuseSoftmax):
+				stdv = 0.003
+			else:
+				stdv = 10.0	#0.2
+			return stdv
+		#min activation for RelU:
+		if(useCNNlayers):
+			thresholdActivationsMin = calculateDefaultConv2DweightsStdv(hiddenLayerSize)
+		else:
+			thresholdActivationsMin = calculateDefaultLinearWeightsStdv(hiddenLayerSize)
+		#need to assume input layer activations are normalised, elses some inputs will be entirely suppressed while others will be accepted
+
 inputLayerInList = True
 outputLayerInList = False
 
@@ -54,10 +82,6 @@ else:
 	useLinearSublayers = False
 linearSublayersNumber = 100
 		
-SMANNuseSoftmax = False	#experimental (select activation function that will gradually reduce probability of activation of higher level columns in each permutation)
-usePositiveWeights = True	#required
-if(usePositiveWeights):
-	usePositiveWeightsClampModel = False	#mandatory False as hidden layer weights untrained but all initialised as positive
 
 
 workingDrive = '/large/source/ANNpython/LUANNpt/'

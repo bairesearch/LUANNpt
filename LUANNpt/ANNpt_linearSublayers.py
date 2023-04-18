@@ -69,24 +69,20 @@ def generateLinearLayer(self, layerIndex, config, parallelStreams=False):
 	return linear
 
 def generateActivationFunction():
-	if(usePositiveWeights):
-		activation = nn.Softmax(dim=1)
+	if(SMANNuseSoftmax):
+		if(thresholdActivations):
+			activation = OffsetSoftmax(thresholdActivationsMin)
+		else:
+			activation = nn.Softmax(dim=1)
 	else:
-		activation = nn.ReLU()
+		if(thresholdActivations):
+			activation = OffsetReLU(thresholdActivationsMin)
+		else:
+			activation = nn.ReLU()
 	return activation
 
 def generateActivationLayer(self, layerIndex, config):
-	if(usePositiveWeights):
-		if(getUseLinearSublayers(self, layerIndex)):
-			activation = nn.Softmax(dim=1)
-		else:
-			activation = nn.Softmax(dim=1)
-	else:
-		if(getUseLinearSublayers(self, layerIndex)):
-			activation = nn.ReLU()
-		else:
-			activation = nn.ReLU()		
-	return activation
+	return generateActivationFunction()
 
 def executeLinearLayer(self, layerIndex, x, linear, parallelStreams=False):
 	weightsFixLayer(self, layerIndex, linear)	#otherwise need to constrain backprop weight update function to never set weights below 0
@@ -103,17 +99,25 @@ def executeLinearLayer(self, layerIndex, x, linear, parallelStreams=False):
 	return x
 
 def executeActivationLayer(self, layerIndex, x, activationFunction, parallelStreams=False):
-	#TODO: find an optimised parallel implementation of executeActivationLayer:getUseLinearSublayers:activationFunction
 	if(getUseLinearSublayers(self, layerIndex)):
-		xSublayerList = []
-		for sublayerIndex in range(self.config.linearSublayersNumber):
-			xSublayer = x[:, sublayerIndex]
-			xSublayer = activationFunction(xSublayer)
-			xSublayerList.append(xSublayer)
-		if(parallelStreams):
-			x = pt.stack(xSublayerList, dim=1)
+		if(SMANNuseSoftmax):
+			#TODO: find an optimised parallel implementation of executeActivationLayer:getUseLinearSublayers:SMANNuseSoftmax:activationFunction
+			xSublayerList = []
+			for sublayerIndex in range(self.config.linearSublayersNumber):
+				xSublayer = x[:, sublayerIndex]
+				xSublayer = activationFunction(xSublayer)
+				xSublayerList.append(xSublayer)
+			if(parallelStreams):
+				x = pt.stack(xSublayerList, dim=1)
+			else:
+				x = pt.concat(xSublayerList, dim=1)
 		else:
-			x = pt.concat(xSublayerList, dim=1)
+			x = activationFunction(x)
+			if(not parallelStreams):
+				if(useCNNlayers):
+					x = pt.reshape(x, (x.shape[0], x.shape[1]*x.shape[2], x.shape[3], x.shape[4]))
+				else:
+					x = pt.reshape(x, (x.shape[0], x.shape[1]*x.shape[2]))
 	else:
 		x = activationFunction(x)
 	return x
@@ -162,3 +166,32 @@ def weightsSetPositiveModel(self):
 		if(usePositiveWeightsClampModel):
 			for p in self.parameters():
 				p.data.clamp_(0)
+
+class OffsetReLU(nn.Module):
+	def __init__(self, offset):
+		super(OffsetReLU, self).__init__()
+		self.offset = offset
+
+	def forward(self, x):
+		print("OffsetReLU: x = ", x)
+		#print("self.offset = ", self.offset)
+		x = pt.max(pt.zeros_like(x), x - self.offset)
+		return x
+
+class OffsetSoftmax(nn.Module):
+	def __init__(self, offset):
+		super(OffsetSoftmax, self).__init__()
+		self.offset = offset
+		self.softmax = nn.Softmax(dim=1)
+
+	def forward(self, x):
+		print("OffsetSoftmax: x = ", x)
+		#print("self.offset = ", self.offset)
+		x = self.softmax(x)
+		print("OffsetSoftmax: x after softmax = ", x)
+		x = pt.max(pt.zeros_like(x), x - self.offset)
+		return x
+
+
+
+

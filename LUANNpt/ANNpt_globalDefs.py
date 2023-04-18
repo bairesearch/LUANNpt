@@ -68,6 +68,7 @@ else:
 inputLayerInList = True
 outputLayerInList = True
 useCNNlayers = False
+thresholdActivations = False
 
 useTabularDataset = False
 useImageDataset = False
@@ -257,3 +258,6 @@ def printe(str):
 	exit()
 
 device = pt.device('cuda') if pt.cuda.is_available() else pt.device('cpu')
+
+
+	

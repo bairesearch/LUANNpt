@@ -177,14 +177,18 @@ else:
 				permuationActive = self.permuationsActive[p]
 				h = x
 				for l in range(self.numberOfLayersMax):
+					#print("l = ", l, ", h = ", h)
 					col = permutation[l]
 					colActive = permuationActive[l]
 					h = col(h)
+					#print("l = ", l, ", h = ", h)
 					h = self.activationFunction(h)
 					if(pt.sum(h) == 0):
 						break
 					else:
 						permuationActive[l] = True
+				if(thresholdActivations):
+					print("max l = ", l)
 						
 		def preprocessSeverInactivePermutations(self):
 			permutationsCulled = []
