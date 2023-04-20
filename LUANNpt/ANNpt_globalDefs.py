@@ -22,8 +22,8 @@ useAlgorithmVICRegANN = False
 useAlgorithmAUANN = False
 useAlgorithmSMANN = False
 useAlgorithmLUANN = False
-useAlgorithmLUOR = True
-
+useAlgorithmLUOR = False
+useAlgorithmSANIOR = True
 
 #initialise (dependent vars);
 usePairedDataset = False
@@ -69,6 +69,7 @@ inputLayerInList = True
 outputLayerInList = True
 useCNNlayers = False
 thresholdActivations = False
+debugPrintActivationOutput = False
 
 useTabularDataset = False
 useImageDataset = False
@@ -86,6 +87,9 @@ elif(useAlgorithmLUANN):
 	useTabularDataset = True
 elif(useAlgorithmLUOR):
 	from LUANNpt_LUOR_globalDefs import *
+	useImageDataset = True
+elif(useAlgorithmSANIOR):
+	from LUANNpt_SANIOR_globalDefs import *
 	useImageDataset = True
 	
 import torch as pt

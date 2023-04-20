@@ -30,7 +30,7 @@ outputLayerInList = True
 useLinearSublayers = True	#recommended	#pass input through multiple independent column permutations
 linearSublayersNumber = 1000
 		
-SMANNuseSoftmax = False
+SMANNuseSoftmax = True
 usePositiveWeights = True	#required
 if(usePositiveWeights):
 	usePositiveWeightsClampModel = False	#mandatory False as hidden layer weights untrained but all initialised as positive

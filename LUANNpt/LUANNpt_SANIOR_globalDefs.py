@@ -1,4 +1,4 @@
-"""LUANNpt_LUOR_globalDefs.py
+"""LUANNpt_SANIOR_globalDefs.py
 
 # Author:
 Richard Bruce Baxter - Copyright (c) 2023 Baxter AI (baxterai.com)
@@ -13,22 +13,24 @@ see ANNpt_main.py
 see ANNpt_main.py
 
 # Description:
-LUANNpt LUOR globalDefs
+LUANNpt SANIOR globalDefs
 
 """
 
-LUANNvectorised = False	#execute column operations in parallel	#optional
-useCNNlayers = True	#optional	#else Linear layers
-
-trainLastLayerOnly = True	#True: default LUANN, False: standard backprop comparison for debug
+LUANNvectorised = True	#execute column operations in parallel	#optional #True: requires high GPU RAM, False: requires high GPU time
+useCNNlayers = True	#mandatory
 
 debugPrintActivationOutput = True
 
-batchSize = 32
+linkFilters = False	#TODO
+
+trainLastLayerOnly = True	#True: default LUANN, False: standard backprop comparison for debug
+
+batchSize = 1	#save GPU RAM
+numberOfLayers = 4	#number of columns in each permutation
 trainNumberOfEpochs = 10
 		
 # Define network hyperparameters
-numberOfUniqueColumns = 100  # Number of unique columns (layers) to select permutations from
 numberOfClasses = 10  # Number of CIFAR-10 classes
 imageSizeChannels = 3
 imageSizeWidth = 32
@@ -37,26 +39,17 @@ imageSize = imageSizeWidth*imageSizeHeight
 numberOfFeatures = imageSize*imageSizeChannels	# Number of CIFAR-10 features
 
 if(useCNNlayers):
-	useCNNlayersConverge = True	#default: False
+	useCNNlayersConverge = True	#mandatory
 	if(useCNNlayersConverge):
 		CNNkernelSize = 3
 		CNNstride = 2	#decresse pixel width  by 2x every layer
 		CNNpadding = 0	#CHECKTHIS
-		numberOfLayersMax = 4	#Maximum number of columns in each permutation
-		numberOfLayersMin = 2	#Minimum number of columns in each permutation
 	else:
 		CNNkernelSize = 5
 		CNNstride = 1	#maintain pixel width per layer
 		CNNpadding = 'same'
-		numberOfLayersMax = 10	#Maximum number of columns in each permutation
-		numberOfLayersMin = 3	#Minimum number of columns in each permutation
-	hiddenLayerSize = 16	#number of Conv2D channels channels per layer (column)
+	hiddenLayerSize = 1	#number of Conv2D channels channels per layer (column)
 	inputLayerSize = imageSizeChannels
-else:
-	hiddenLayerSize = 256
-	inputLayerSize = numberOfFeatures
-	numberOfLayersMax = 10	#Maximum number of columns in each permutation
-	numberOfLayersMin = 3	#Minimum number of columns in each permutation
 
 SMANNuseSoftmax = True	#experimental (select activation function that will gradually reduce probability of activation of higher level columns in each permutation)
 usePositiveWeights = True	#required
@@ -92,15 +85,14 @@ outputLayerInList = False
 
 if(LUANNvectorised):
 	useLinearSublayers = True	#recommended	#pass input through multiple independent column permutations
-	LUANNpermutationsPreprocess = False
+	linearSublayersNumber = 10	#number of unique columns in each layer	#requires high GPU RAM
 else:
 	useLinearSublayers = False
-	LUANNpermutationsPreprocess = True
-linearSublayersNumber = 100
+	linearSublayersNumber = 10	#100	#number of unique columns in each layer	#requires high GPU time
 		
 
 
 workingDrive = '/large/source/ANNpython/LUANNpt/'
 dataDrive = workingDrive	#'/datasets/'
 
-modelName = 'modelLUOR'
+modelName = 'modelSANIOR'

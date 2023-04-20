@@ -25,7 +25,7 @@ class LinearSegregated(nn.Module):
 	def __init__(self, in_features, out_features, number_sublayers):
 		super().__init__()
 		if(useCNNlayers):
-			self.segregatedLinear = nn.Conv2d(in_channels=in_features*number_sublayers, out_channels=out_features*number_sublayers, kernel_size=CNNkernelSize, padding='same', groups=number_sublayers)
+			self.segregatedLinear = nn.Conv2d(in_channels=in_features*number_sublayers, out_channels=out_features*number_sublayers, kernel_size=CNNkernelSize, stride=CNNstride, padding=CNNpadding, groups=number_sublayers)
 		else:	
 			self.segregatedLinear = nn.Conv1d(in_channels=in_features*number_sublayers, out_channels=out_features*number_sublayers, kernel_size=1, groups=number_sublayers)
 		self.number_sublayers = number_sublayers
@@ -53,15 +53,18 @@ def generateLinearLayer(self, layerIndex, config, parallelStreams=False):
 		out_features = config.outputLayerSize
 	else:
 		out_features = config.hiddenLayerSize
-
+	linearSublayersNumber = config.linearSublayersNumber
+	return generateLinearLayer2(self, layerIndex, in_features, out_features, linearSublayersNumber, parallelStreams)
+		
+def generateLinearLayer2(self, layerIndex, in_features, out_features, linearSublayersNumber, parallelStreams=False):
 	if(getUseLinearSublayers(self, layerIndex)):
-		linear = LinearSegregated(in_features=in_features, out_features=out_features, number_sublayers=config.linearSublayersNumber)
+		linear = LinearSegregated(in_features=in_features, out_features=out_features, number_sublayers=linearSublayersNumber)
 	else:
 		if(useCNNlayers):
-			linear = nn.Conv2d(in_channels=in_features, out_channels=out_features, kernel_size=CNNkernelSize, padding='same')
+			linear = nn.Conv2d(in_channels=in_features, out_channels=out_features, kernel_size=CNNkernelSize, stride=CNNstride, padding=CNNpadding)
 		else:
 			if(parallelStreams):
-				in_features = config.hiddenLayerSize*config.linearSublayersNumber
+				in_features = in_features*linearSublayersNumber
 			linear = nn.Linear(in_features=in_features, out_features=out_features)
 
 	weightsSetLayer(self, layerIndex, linear)
@@ -173,7 +176,8 @@ class OffsetReLU(nn.Module):
 		self.offset = offset
 
 	def forward(self, x):
-		print("OffsetReLU: x = ", x)
+		if(debugPrintActivationOutput):
+			print("OffsetReLU: x = ", x)
 		#print("self.offset = ", self.offset)
 		x = pt.max(pt.zeros_like(x), x - self.offset)
 		return x
@@ -185,10 +189,12 @@ class OffsetSoftmax(nn.Module):
 		self.softmax = nn.Softmax(dim=1)
 
 	def forward(self, x):
-		print("OffsetSoftmax: x = ", x)
+		if(debugPrintActivationOutput):
+			print("OffsetSoftmax: x = ", x)
 		#print("self.offset = ", self.offset)
 		x = self.softmax(x)
-		print("OffsetSoftmax: x after softmax = ", x)
+		if(debugPrintActivationOutput):
+			print("OffsetSoftmax: x after softmax = ", x)
 		x = pt.max(pt.zeros_like(x), x - self.offset)
 		return x
 

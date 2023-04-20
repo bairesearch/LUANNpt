@@ -41,6 +41,8 @@ elif(useAlgorithmLUANN):
 	import LUANNpt_LUANN as ANNpt_algorithm
 elif(useAlgorithmLUOR):
 	import LUANNpt_LUOR as ANNpt_algorithm
+elif(useAlgorithmSANIOR):
+	import LUANNpt_SANIOR as ANNpt_algorithm
 	
 if(usePositiveWeights):
 	import ANNpt_linearSublayers

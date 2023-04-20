@@ -65,22 +65,18 @@ if(LUANNvectorised):
 				self.numberOfChannelsHidden = config.hiddenLayerSize
 
 			#declare columns
-			layersLinearList = []
-			layersActivationList = []
+			self.columnsLinear = nn.ModuleList()
 			for layerIndex in range(self.numberOfLayersMax):
 				linear = ANNpt_linearSublayers.generateLinearLayer(self, layerIndex, config, parallelStreams=True)
-				layersLinearList.append(linear)
-			'''
-			for layerIndex in range(config.numberOfLayersMax):
-				activation = ANNpt_linearSublayers.generateActivationLayer(self, layerIndex, config)
-				layersActivationList.append(activation)
-			self.columnsActivation = nn.ModuleList(layersActivationList)
-			'''
+				self.columnsLinear.append(linear)
+				
 			self.activationFunction = ANNpt_linearSublayers.generateActivationFunction()
-			self.columnsLinear = nn.ModuleList(layersLinearList)
 			
 			if(useCNNlayers):
-				self.output = nn.Linear(self.numberOfColumnPermutations*self.numberOfChannelsHidden*self.imageSize, self.numberOfClasses)
+				if(useCNNlayersConverge):
+					self.output = nn.Linear(self.numberOfColumnPermutations*self.numberOfChannelsHidden, self.numberOfClasses)
+				else:
+					self.output = nn.Linear(self.numberOfColumnPermutations*self.numberOfChannelsHidden*self.imageSize, self.numberOfClasses)
 			else:
 				self.output = nn.Linear(self.numberOfColumnPermutations*self.columnSize, self.numberOfClasses)
 				
@@ -99,24 +95,14 @@ if(LUANNvectorised):
 			for l in range(self.numberOfLayersMax):
 				linear = self.columnsLinear[l]
 				h = ANNpt_linearSublayers.executeLinearLayer(self, l, h, linear, parallelStreams=True)
-				#h = ANNpt_linearSublayers.executeActivationLayer(self, l, h, self.layersActivationList[l], parallelStreams=True)
 				h = ANNpt_linearSublayers.executeActivationLayer(self, l, h, self.activationFunction, parallelStreams=True)
 			if(trainLastLayerOnly):
 				h = h.detach()
 
-			# Flatten columns' output and connect to output layer
-			hAllP = h
-			if(useCNNlayers):
-				hAllP = pt.reshape(hAllP, (hAllP.shape[0], hAllP.shape[1]*hAllP.shape[2]*hAllP.shape[3]*hAllP.shape[4]))
-			else:
-				hAllP = pt.reshape(hAllP, (hAllP.shape[0], hAllP.shape[1]*hAllP.shape[2]))	
-			out = self.output(hAllP)
-
-			loss = self.lossFunction(out, y)
-			accuracy = self.accuracyFunction(out, y)
-			accuracy = accuracy.detach().cpu().numpy()
-
+			loss, accuracy = calculateOutput(self, h, y)
+			
 			return loss, accuracy
+			
 else:
 	class LUORmodel(nn.Module):	#LargeUntrainedExcitatoryNet
 		def __init__(self, config,):
@@ -134,16 +120,21 @@ else:
 				self.numberOfChannelsHidden = config.hiddenLayerSize
 				
 			#declare columns
-			self.numberOfUniqueColumnsInput = self.numberOfUniqueColumns//self.numberOfLayersMax	#self.numberOfUniqueColumns
-			self.columnsInput = nn.ModuleList([ANNpt_linearSublayers.generateLinearLayer(self, 0, config, parallelStreams=False) for i in range(self.numberOfUniqueColumnsInput)])	#requires separate declaration because their in_features size is different than out_features
-			self.columnsHidden = nn.ModuleList([ANNpt_linearSublayers.generateLinearLayer(self, -1, config, parallelStreams=False) for i in range(self.numberOfUniqueColumns)])	#in_features == out_features
-			if(usePositiveWeights):
-				for c in range(self.numberOfUniqueColumnsInput):
-					self.columnsInput[c].weight.data = pt.abs(self.columnsInput[c].weight.data)
+			self.columns = nn.ModuleList()
+			for l in range(self.numberOfLayersMax):
+				columnsLayer = nn.ModuleList()
 				for c in range(self.numberOfUniqueColumns):
-					self.columnsHidden[c].weight.data = pt.abs(self.columnsHidden[c].weight.data)
+					column = ANNpt_linearSublayers.generateLinearLayer(self, l, config, parallelStreams=False)
+					print("column = ", column)
+					columnsLayer.append(column)
+					if(usePositiveWeights):
+						column.weight.data = pt.abs(column.weight.data)
+				self.columns.append(columnsLayer)
 			if(useCNNlayers):
-				self.output = nn.Linear(self.numberOfColumnPermutations*self.numberOfChannelsHidden*self.imageSize, self.numberOfClasses)
+				if(useCNNlayersConverge):
+					self.output = nn.Linear(self.numberOfColumnPermutations*self.numberOfChannelsHidden, self.numberOfClasses)
+				else:
+					self.output = nn.Linear(self.numberOfColumnPermutations*self.numberOfChannelsHidden*self.imageSize, self.numberOfClasses)
 			else:
 				self.output = nn.Linear(self.numberOfColumnPermutations*self.columnSize, self.numberOfClasses)
 
@@ -152,13 +143,13 @@ else:
 			self.permuationsActive = []
 			for p in range(self.numberOfColumnPermutations):
 				# create random column permutations (can sample same column more than once; recurrent connections)
-				permInput = random.choices(range(self.numberOfUniqueColumnsInput), k=1)
-				permHidden = random.choices(range(self.numberOfUniqueColumns), k=self.numberOfLayersMax-1)
-				
-				# Apply permutation to columns
-				permutationInput = [self.columnsInput[i] for i in permInput]
-				permutationHidden = [self.columnsHidden[i] for i in permHidden]
-				permutation = permutationInput + permutationHidden
+				permutation = []
+				for l in range(self.numberOfLayersMax):
+					columnsLayer = self.columns[l]
+					permLayer = random.choices(range(self.numberOfUniqueColumns), k=1)
+					permutationLayer = columnsLayer[permLayer[0]]
+					#print("permutationLayer = ", permutationLayer)
+					permutation.append(permutationLayer)
 				self.permuations.append(permutation)
 				
 				permutationActive = [False]*self.numberOfUniqueColumns
@@ -188,7 +179,8 @@ else:
 					else:
 						permuationActive[l] = True
 				if(thresholdActivations):
-					print("max l = ", l)
+					if(debugPrintActivationOutput):
+						print("max l = ", l)
 						
 		def preprocessSeverInactivePermutations(self):
 			permutationsCulled = []
@@ -227,16 +219,26 @@ else:
 					h = h.detach()
 				hAllP.append(h)
 
-			# Flatten columns' output and connect to output layer
 			hAllP = pt.stack(hAllP, dim=1)
-			if(useCNNlayers):
-				hAllP = pt.reshape(hAllP, (hAllP.shape[0], hAllP.shape[1]*hAllP.shape[2]*hAllP.shape[3]*hAllP.shape[4]))
-			else:
-				hAllP = pt.reshape(hAllP, (hAllP.shape[0], hAllP.shape[1]*hAllP.shape[2]))
-			out = self.output(hAllP)
-
-			loss = self.lossFunction(out, y)
-			accuracy = self.accuracyFunction(out, y)
-			accuracy = accuracy.detach().cpu().numpy()
-
+			loss, accuracy = calculateOutput(self, hAllP, y)
+			
 			return loss, accuracy
+			
+def calculateOutput(self, h, y):
+	if(trainLastLayerOnly):
+		h = h.detach()
+	
+	# Flatten columns' output and connect to output layer
+	if(useCNNlayers):
+		h = pt.reshape(h, (h.shape[0], h.shape[1]*h.shape[2]*h.shape[3]*h.shape[4]))
+	else:
+		h = pt.reshape(h, (h.shape[0], h.shape[1]*h.shape[2]))
+	
+	out = self.output(h)
+
+	loss = self.lossFunction(out, y)
+	accuracy = self.accuracyFunction(out, y)
+	accuracy = accuracy.detach().cpu().numpy()
+
+	return loss, accuracy
+		
