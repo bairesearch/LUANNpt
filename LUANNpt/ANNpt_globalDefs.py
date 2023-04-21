@@ -94,7 +94,7 @@ elif(useAlgorithmSANIOR):
 	
 import torch as pt
 
-useLovelyTensors = True
+useLovelyTensors = False
 if(useLovelyTensors):
 	import lovely_tensors as lt
 	lt.monkey_patch()

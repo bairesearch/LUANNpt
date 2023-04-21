@@ -22,7 +22,7 @@ useCNNlayers = True	#mandatory
 
 debugPrintActivationOutput = True
 
-linkFilters = False	#TODO
+linkFilters = True
 
 trainLastLayerOnly = True	#True: default LUANN, False: standard backprop comparison for debug
 
@@ -57,7 +57,7 @@ if(usePositiveWeights):
 	usePositiveWeightsClampModel = False	#mandatory False as hidden layer weights untrained but all initialised as positive
 
 if(usePositiveWeights):
-	thresholdActivations = True	#make activations go to zero at later layers in columns
+	thresholdActivations = False	#make activations go to zero at later layers in columns
 	if(thresholdActivations):
 		import math
 		def calculateDefaultLinearWeightsStdv(in_features):
@@ -84,10 +84,10 @@ outputLayerInList = False
 
 
 if(LUANNvectorised):
-	useLinearSublayers = True	#recommended	#pass input through multiple independent column permutations
+	useLinearSublayers = True	#pass input through multiple independent column permutations
 	linearSublayersNumber = 10	#number of unique columns in each layer	#requires high GPU RAM
 else:
-	useLinearSublayers = False
+	useLinearSublayers = True	#pass input through multiple independent column permutations
 	linearSublayersNumber = 10	#100	#number of unique columns in each layer	#requires high GPU time
 		
 

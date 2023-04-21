@@ -101,26 +101,29 @@ def executeLinearLayer(self, layerIndex, x, linear, parallelStreams=False):
 		x = linear(x)
 	return x
 
-def executeActivationLayer(self, layerIndex, x, activationFunction, parallelStreams=False):
+def executeActivationLayer(self, layerIndex, x, activationFunction, parallelStreams=False, executeActivationFunctionOverFeatures=True):
 	if(getUseLinearSublayers(self, layerIndex)):
 		if(SMANNuseSoftmax):
-			#TODO: find an optimised parallel implementation of executeActivationLayer:getUseLinearSublayers:SMANNuseSoftmax:activationFunction
-			xSublayerList = []
-			for sublayerIndex in range(self.config.linearSublayersNumber):
-				xSublayer = x[:, sublayerIndex]
-				xSublayer = activationFunction(xSublayer)
-				xSublayerList.append(xSublayer)
-			if(parallelStreams):
-				x = pt.stack(xSublayerList, dim=1)
-			else:
-				x = pt.concat(xSublayerList, dim=1)
+			if(executeActivationFunctionOverFeatures):
+				numberOfSamples = x.shape[0]
+				numberOfSublayers = x.shape[1]
+				if(useCNNlayers):
+					x = pt.reshape(x, (x.shape[0]*x.shape[1], x.shape[2], x.shape[3], x.shape[4]))
+				else:
+					x = pt.reshape(x, (x.shape[0]*x.shape[1], x.shape[2]))
+			x = activationFunction(x)
+			if(executeActivationFunctionOverFeatures):
+				if(useCNNlayers):
+					x = pt.reshape(x, (numberOfSamples, numberOfSublayers, x.shape[1], x.shape[2], x.shape[3]))
+				else:
+					x = pt.reshape(x, (numberOfSamples, numberOfSublayers, x.shape[1]))
 		else:
 			x = activationFunction(x)
-			if(not parallelStreams):
-				if(useCNNlayers):
-					x = pt.reshape(x, (x.shape[0], x.shape[1]*x.shape[2], x.shape[3], x.shape[4]))
-				else:
-					x = pt.reshape(x, (x.shape[0], x.shape[1]*x.shape[2]))
+		if(not parallelStreams):
+			if(useCNNlayers):
+				x = pt.reshape(x, (x.shape[0], x.shape[1]*x.shape[2], x.shape[3], x.shape[4]))
+			else:
+				x = pt.reshape(x, (x.shape[0], x.shape[1]*x.shape[2]))
 	else:
 		x = activationFunction(x)
 	return x

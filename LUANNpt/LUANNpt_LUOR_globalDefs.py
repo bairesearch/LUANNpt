@@ -17,7 +17,7 @@ LUANNpt LUOR globalDefs
 
 """
 
-LUANNvectorised = False	#execute column operations in parallel	#optional
+LUANNvectorised = True	#execute column operations in parallel	#optional
 useCNNlayers = True	#optional	#else Linear layers
 
 trainLastLayerOnly = True	#True: default LUANN, False: standard backprop comparison for debug
