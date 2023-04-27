@@ -62,21 +62,21 @@ class SMANNmodel(nn.Module):
 		ANNpt_linearSublayers.weightsSetPositiveModel(self)
 				
 	def forward(self, trainOrTest, x, y, optim=None, l=None):
-		if(useLinearSublayers):
+		if(useLUANNonly):
 			x = x.unsqueeze(dim=1).repeat(1, self.config.linearSublayersNumber, 1)
 		for layerIndex in range(self.config.numberOfLayers):
 			if(trainLastLayerOnly):
 				x = x.detach()
-			x = ANNpt_linearSublayers.executeLinearLayer(self, layerIndex, x, self.layersLinear[layerIndex], parallelStreams=True)
+			x = ANNpt_linearSublayers.executeLinearLayer(self, layerIndex, x, self.layersLinear[layerIndex], parallelStreams=useLUANNonly)
 			if(debugSmallNetwork):
 				print("layerIndex = ", layerIndex)
 				print("x after linear = ", x)
 			if(layerIndex == self.config.numberOfLayers-1):
 				if(not useInbuiltCrossEntropyLossFunction):
-					x = ANNpt_linearSublayers.executeActivationLayer(self, layerIndex, x, self.layersActivation[layerIndex], parallelStreams=True)	#CHECKTHIS
+					x = ANNpt_linearSublayers.executeActivationLayer(self, layerIndex, x, self.layersActivation[layerIndex], parallelStreams=useLUANNonly)	#CHECKTHIS
 					x = pt.log(x)
 			else:
-				x = ANNpt_linearSublayers.executeActivationLayer(self, layerIndex, x, self.layersActivation[layerIndex], parallelStreams=True)
+				x = ANNpt_linearSublayers.executeActivationLayer(self, layerIndex, x, self.layersActivation[layerIndex], parallelStreams=useLUANNonly)
 			if(debugSmallNetwork):
 				print("x after activation = ", x)
 		loss = self.lossFunction(x, y)

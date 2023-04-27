@@ -94,6 +94,10 @@ def executeLinearLayer(self, layerIndex, x, linear, parallelStreams=False):
 		if(not parallelStreams):
 			x = x.unsqueeze(dim=1).repeat(1, self.config.linearSublayersNumber, 1)
 		x = linear(x)
+		if(simulatedDendriticBranches):
+			x = performTopK(x)
+		if(normaliseActivationSparsity):
+			x = nn.functional.layer_norm(x, x.shape[1:])   #normalized_shape does not include batchSize
 	else:
 		if(parallelStreams):
 			x = pt.reshape(x, (x.shape[0], x.shape[1]*x.shape[2]))
@@ -101,8 +105,12 @@ def executeLinearLayer(self, layerIndex, x, linear, parallelStreams=False):
 		x = linear(x)
 	return x
 
+def performTopK(x):
+	x = pt.max(x, dim=1, keepdim=False).values
+	return x
+	
 def executeActivationLayer(self, layerIndex, x, activationFunction, parallelStreams=False, executeActivationFunctionOverFeatures=True):
-	if(getUseLinearSublayers(self, layerIndex)):
+	if(getUseLinearSublayers(self, layerIndex) and not simulatedDendriticBranches):
 		if(SMANNuseSoftmax):
 			if(executeActivationFunctionOverFeatures):
 				numberOfSamples = x.shape[0]

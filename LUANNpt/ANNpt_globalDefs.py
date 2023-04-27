@@ -20,10 +20,10 @@ ANNpt globalDefs
 #algorithm selection
 useAlgorithmVICRegANN = False
 useAlgorithmAUANN = False
-useAlgorithmSMANN = False
-useAlgorithmLUANN = False
+useAlgorithmLIANN = False
+useAlgorithmLUANN = True
 useAlgorithmLUOR = False
-useAlgorithmSANIOR = True
+useAlgorithmSANIOR = False
 
 #initialise (dependent vars);
 usePairedDataset = False
@@ -62,14 +62,18 @@ if(debugSmallNetwork):
 else:
 	batchSize = 64
 	numberOfLayers = 4
-	hiddenLayerSize = 100
+	hiddenLayerSize = 10
 	trainNumberOfEpochs = 10
 
+#initialise (dependent vars);
 inputLayerInList = True
 outputLayerInList = True
 useCNNlayers = False
 thresholdActivations = False
 debugPrintActivationOutput = False
+simulatedDendriticBranches = False
+SMANNuseSoftmax = False
+trainLastLayerOnly = False
 
 useTabularDataset = False
 useImageDataset = False
@@ -79,8 +83,8 @@ if(useAlgorithmVICRegANN):
 elif(useAlgorithmAUANN):
 	from LREANNpt_globalDefs import *
 	useTabularDataset = True
-elif(useAlgorithmSMANN):
-	from LUANNpt_globalDefs import *
+elif(useAlgorithmLIANN):
+	from LIANNpt_globalDefs import *
 	useTabularDataset = True
 elif(useAlgorithmLUANN):
 	from LUANNpt_LUANN_globalDefs import *
@@ -94,7 +98,7 @@ elif(useAlgorithmSANIOR):
 	
 import torch as pt
 
-useLovelyTensors = False
+useLovelyTensors = True
 if(useLovelyTensors):
 	import lovely_tensors as lt
 	lt.monkey_patch()

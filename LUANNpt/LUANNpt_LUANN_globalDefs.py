@@ -17,26 +17,37 @@ LUANNpt LUANN globalDefs
 
 """
 
-batchSize = 64
-numberOfLayers = 4
-hiddenLayerSize = 100
-trainNumberOfEpochs = 10
+debugSmallNetwork = False
 
-trainLastLayerOnly = True	#True: default LUANN, False: standard backprop comparison for debug
+useLUANNonly = True
+if(useLUANNonly):
+	trainLastLayerOnly = True	#True: default LUANN, False: standard backprop comparison for debug
 
-inputLayerInList = True
-outputLayerInList = True
+	inputLayerInList = True
+	outputLayerInList = True
 
-useLinearSublayers = True	#recommended	#pass input through multiple independent column permutations
-linearSublayersNumber = 1000
+	useLinearSublayers = True	#recommended	#pass input through multiple independent column permutations
+	linearSublayersNumber = 1000
 		
-SMANNuseSoftmax = True
-usePositiveWeights = True	#required
-if(usePositiveWeights):
-	usePositiveWeightsClampModel = False	#mandatory False as hidden layer weights untrained but all initialised as positive
-useInbuiltCrossEntropyLossFunction = True	#optional	#for LUANNpt_LUANNmodel only
+	SMANNuseSoftmax = False
+	if(SMANNuseSoftmax):
+		usePositiveWeights = False	#required
+		if(usePositiveWeights):
+			usePositiveWeightsClampModel = False	#mandatory False as hidden layer weights untrained but all initialised as positive
+	useInbuiltCrossEntropyLossFunction = True	#optional	#for LUANNpt_LUANNmodel only
+	
+	if(trainLastLayerOnly):
+		batchSize = 64
+		numberOfLayers = 4
+		if(SMANNuseSoftmax):
+			hiddenLayerSize = 1000
+			normaliseActivationSparsity = True	#increases performance
+		else:
+			hiddenLayerSize = 100
+			normaliseActivationSparsity = False
 	
 workingDrive = '/large/source/ANNpython/LUANNpt/'
 dataDrive = workingDrive	#'/datasets/'
 
 modelName = 'modelLUANN'
+

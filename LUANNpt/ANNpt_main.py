@@ -35,8 +35,8 @@ if(useAlgorithmVICRegANN):
 	import VICRegANNpt_VICRegANN as ANNpt_algorithm
 elif(useAlgorithmAUANN):
 	import LREANNpt_AUANN as ANNpt_algorithm
-elif(useAlgorithmSMANN):
-	import LUANNpt_LUANN as ANNpt_algorithm
+elif(useAlgorithmLIANN):
+	import LIANNpt_LIANN as ANNpt_algorithm
 elif(useAlgorithmLUANN):
 	import LUANNpt_LUANN as ANNpt_algorithm
 elif(useAlgorithmLUOR):
